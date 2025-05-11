@@ -1,0 +1,58 @@
+<!-- templates/map_columns.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Map Columns</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="container mt-4">
+    <h2>Select Column Mappings</h2>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="description_column" class="form-label">Description Column</label>
+            <select name="description_column" class="form-select" required>
+                {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="balance_column" class="form-label">Balance Column (if only one amount column)</label>
+            <select name="balance_column" class="form-select">
+                <option value="">-- None --</option>
+                {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">OR Specify Debit & Credit Columns</label>
+            <div class="row">
+                <div class="col">
+                    <select name="debit_column" class="form-select">
+                        <option value="">-- Debit --</option>
+                        {% for col in columns %}
+                        <option value="{{ col }}">{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col">
+                    <select name="credit_column" class="form-select">
+                        <option value="">-- Credit --</option>
+                        {% for col in columns %}
+                        <option value="{{ col }}">{{ col }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Continue</button>
+    </form>
+</div>
+</body>
+</html>

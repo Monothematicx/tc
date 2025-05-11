@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pivot Table Report</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .table-sticky-header th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+        }
+
+        .table-sticky-first-col td:first-child,
+        .table-sticky-first-col th:first-child {
+            position: sticky;
+            left: 0;
+            background-color: #f8f9fa;
+            z-index: 5;
+        }
+
+        .pivot-table {
+            font-size: 0.9rem;
+        }
+
+        .total-row {
+            font-weight: bold;
+            background-color: #e9ecef;
+        }
+
+        .positive-amount {
+            color: #28a745;
+        }
+
+        .negative-amount {
+            color: #dc3545;
+        }
+
+        .zero-amount {
+            color: #6c757d;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                padding: 0;
+                margin: 0;
+            }
+
+            .container-fluid {
+                width: 100%;
+                max-width: none;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 no-print">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">Transaction Analyzer</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/transactions">Transactions</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/manage_keywords">Manage Keywords</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/report">Reports</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/pivot_report">Pivot Table</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>Transaction Pivot Table</h1>
+            <div class="no-print">
+                <button onclick="window.print()" class="btn btn-outline-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-printer" viewBox="0 0 16 16">
+                        <path d="M2.5 8a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1z"/>
+                        <path d="M5 1a2 2 0 0 0-2 2v2H2a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-1h1a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1V3a2 2 0 0 0-2-2H5zM4 3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2H4V3zm1 5a2 2 0 0 0-2 2v1H2a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v-1a2 2 0 0 0-2-2H5zm7 2v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1z"/>
+                    </svg> Print
+                </button>
+                <button id="exportCsvBtn" class="btn btn-outline-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-spreadsheet" viewBox="0 0 16 16">
+                        <path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V9H3V2a1 1 0 0 1 1-1h5.5v2zM3 12v-2h2v2H3zm0 1h2v2H4a1 1 0 0 1-1-1v-1zm3 2v-2h3v2H6zm4 0v-2h3v1a1 1 0 0 1-1 1h-2zm3-3h-3v-2h3v2zm-7 0v-2h3v2H6z"/>
+                    </svg> Export CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Transaction Pivot Table by Category</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="pivotTable" class="table table-bordered table-hover table-sm pivot-table table-sticky-header table-sticky-first-col mb-0">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                {% for category in all_categories %}
+                                <th>{{ category }}</th>
+                                {% endfor %}
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in transactions %}
+                            <tr>
+                                <td>{{ txn[description_column] }}</td>
+                                {% for category in all_categories %}
+                                <td class="text-end">
+                                    {% if txn.__category == category %}
+                                        {% set amount = txn.__amount|float %}
+                                        {% if amount > 0 %}
+                                            <span class="positive-amount">{{ "%.2f"|format(amount) }}</span>
+                                        {% elif amount < 0 %}
+                                            <span class="negative-amount">{{ "%.2f"|format(amount) }}</span>
+                                        {% else %}
+                                            <span class="zero-amount">0.00</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="zero-amount">-</span>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                                <td class="text-end">
+                                    {% set amount = txn.__amount|float %}
+                                    {% if amount > 0 %}
+                                        <span class="positive-amount">{{ "%.2f"|format(amount) }}</span>
+                                    {% elif amount < 0 %}
+                                        <span class="negative-amount">{{ "%.2f"|format(amount) }}</span>
+                                    {% else %}
+                                        <span class="zero-amount">0.00</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="total-row">
+                                <td>Total</td>
+                                {% for category in all_categories %}
+                                <td class="text-end">
+                                    {% set amount = category_totals[category]|float %}
+                                    {% if amount > 0 %}
+                                        <span class="positive-amount">{{ "%.2f"|format(amount) }}</span>
+                                    {% elif amount < 0 %}
+                                        <span class="negative-amount">{{ "%.2f"|format(amount) }}</span>
+                                    {% else %}
+                                        <span class="zero-amount">0.00</span>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                                <td class="text-end">
+                                    {% if grand_total > 0 %}
+                                        <span class="positive-amount">{{ "%.2f"|format(grand_total) }}</span>
+                                    {% elif grand_total < 0 %}
+                                        <span class="negative-amount">{{ "%.2f"|format(grand_total) }}</span>
+                                    {% else %}
+                                        <span class="zero-amount">0.00</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('exportCsvBtn').addEventListener('click', function() {
+            // Get table data
+            const table = document.getElementById('pivotTable');
+            let csv = [];
+
+            // Process header row
+            let headerRow = [];
+            const headers = table.querySelectorAll('thead th');
+            headers.forEach(header => {
+                headerRow.push('"' + header.textContent.trim().replace(/"/g, '""') + '"');
+            });
+            csv.push(headerRow.join(','));
+
+            // Process data rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                let dataRow = [];
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    // Get the actual text content (ignore - signs used for empty cells)
+                    let content = cell.textContent.trim();
+                    if (content === '-') content = '';
+                    dataRow.push('"' + content.replace(/"/g, '""') + '"');
+                });
+                csv.push(dataRow.join(','));
+            });
+
+            // Process footer row
+            let footerRow = [];
+            const footers = table.querySelectorAll('tfoot td');
+            footers.forEach(footer => {
+                footerRow.push('"' + footer.textContent.trim().replace(/"/g, '""') + '"');
+            });
+            csv.push(footerRow.join(','));
+
+            // Download CSV file
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'transaction_pivot.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    </script>
+</body>
+</html>

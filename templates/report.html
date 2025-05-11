@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Report - Transaction Analyser</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .confidence-bar {
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .confidence-fill {
+            height: 100%;
+            background-color: #0d6efd;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-size: 12px;
+        }
+        .confidence-label {
+            position: absolute;
+            left: 10px;
+            top: 0;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #212529;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1>Transaction Report</h1>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Category Distribution</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Category Summary</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Amount</th>
+                                    <th>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set total_amount = 0 %}
+                                {% for category, amount in category_summary.items() %}
+                                    {% set total_amount = total_amount + amount %}
+                                {% endfor %}
+                                
+                                {% for category, amount in category_summary.items() %}
+                                <tr>
+                                    <td>{{ category }}</td>
+                                    <td>${{ "%.2f"|format(amount) }}</td>
+                                    <td>{{ "%.1f"|format((amount / total_amount * 100) if total_amount else 0) }}%</td>
+                                </tr>
+                                {% endfor %}
+                                <tr class="table-primary">
+                                    <td><strong>Total</strong></td>
+                                    <td><strong>${{ "%.2f"|format(total_amount) }}</strong></td>
+                                    <td><strong>100%</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New section for Categorization Confidence Report -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Categorisation Confidence Report</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- First gather and calculate confidence stats by category -->
+                        {% set confidence_by_category = {} %}
+                        {% set count_by_category = {} %}
+                        
+                        {% for txn in transactions %}
+                            {% set category = txn.get('__category', 'Uncategorized') %}
+                            {% set confidence = txn.get('__confidence', 0) %}
+                            
+                            {% if category not in confidence_by_category %}
+                                {% set _ = confidence_by_category.update({category: confidence}) %}
+                                {% set _ = count_by_category.update({category: 1}) %}
+                            {% else %}
+                                {% set _ = confidence_by_category.update({category: confidence_by_category[category] + confidence}) %}
+                                {% set _ = count_by_category.update({category: count_by_category[category] + 1}) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- Display average confidence per category -->
+                        <h6>Average Confidence Level by Category</h6>
+                        {% for category in all_categories %}
+                            {% if category in confidence_by_category %}
+                                {% set avg_confidence = confidence_by_category[category] / count_by_category[category] %}
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{{ category }}</span>
+                                        <span>{{ "%.1f"|format(avg_confidence) }}%</span>
+                                    </div>
+                                    <div class="confidence-bar">
+                                        <div class="confidence-fill" style="width: {{ avg_confidence }}%">
+                                            {% if avg_confidence >= 30 %}
+                                                {{ "%.1f"|format(avg_confidence) }}%
+                                            {% endif %}
+                                        </div>
+                                        {% if avg_confidence < 30 %}
+                                            <span class="confidence-label">{{ "%.1f"|format(avg_confidence) }}%</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <!-- Display confidence distribution by range -->
+                        <h6 class="mt-4">Confidence Distribution</h6>
+                        {% set confidence_ranges = {
+                            '90-100%': 0,
+                            '75-89%': 0,
+                            '50-74%': 0,
+                            '25-49%': 0,
+                            '0-24%': 0
+                        } %}
+                        
+                        {% for txn in transactions %}
+                            {% set confidence = txn.get('__confidence', 0) %}
+                            {% if confidence >= 90 %}
+                                {% set _ = confidence_ranges.update({'90-100%': confidence_ranges['90-100%'] + 1}) %}
+                            {% elif confidence >= 75 %}
+                                {% set _ = confidence_ranges.update({'75-89%': confidence_ranges['75-89%'] + 1}) %}
+                            {% elif confidence >= 50 %}
+                                {% set _ = confidence_ranges.update({'50-74%': confidence_ranges['50-74%'] + 1}) %}
+                            {% elif confidence >= 25 %}
+                                {% set _ = confidence_ranges.update({'25-49%': confidence_ranges['25-49%'] + 1}) %}
+                            {% else %}
+                                {% set _ = confidence_ranges.update({'0-24%': confidence_ranges['0-24%'] + 1}) %}
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                {% set total_txns = transactions|length %}
+                                {% for range, count in confidence_ranges.items() %}
+                                    {% set percentage = (count / total_txns * 100) if total_txns else 0 %}
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>{{ range }}</span>
+                                            <span>{{ count }} transactions ({{ "%.1f"|format(percentage) }}%)</span>
+                                        </div>
+                                        <div class="confidence-bar">
+                                            <div class="confidence-fill" style="width: {{ percentage }}%">
+                                                {% if percentage >= 30 %}
+                                                    {{ "%.1f"|format(percentage) }}%
+                                                {% endif %}
+                                            </div>
+                                            {% if percentage < 30 %}
+                                                <span class="confidence-label">{{ "%.1f"|format(percentage) }}%</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-4">
+                                <canvas id="confidenceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 mb-5">
+            <a href="{{ url_for('transactions_page') }}" class="btn btn-primary">Back to Transactions</a>
+            <a href="{{ url_for('pivot_report') }}" class="btn btn-secondary">View Pivot Report</a>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Start New Analysis</a>
+        </div>
+    </div>
+    
+    <script>
+        // Category Distribution Chart
+        const categoryData = {
+            labels: [
+                {% for category, amount in category_summary.items() %}
+                    '{{ category }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Amount',
+                data: [
+                    {% for category, amount in category_summary.items() %}
+                        {{ amount }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)',
+                    'rgba(199, 199, 199, 0.7)',
+                    'rgba(83, 102, 255, 0.7)',
+                    'rgba(40, 159, 64, 0.7)',
+                    'rgba(210, 199, 199, 0.7)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        const categoryChart = new Chart(
+            document.getElementById('categoryChart'),
+            {
+                type: 'pie',
+                data: categoryData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total ? (value / total * 100).toFixed(1) : 0;
+                                    return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        );
+        
+        // Confidence Distribution Chart
+        const confidenceData = {
+            labels: [
+                {% for range, count in confidence_ranges.items() %}
+                    '{{ range }}',
+                {% endfor %}
+            ],
+            datasets: [{
+                label: 'Transactions',
+                data: [
+                    {% for range, count in confidence_ranges.items() %}
+                        {{ count }},
+                    {% endfor %}
+                ],
+                backgroundColor: [
+                    'rgba(0, 123, 255, 0.7)',
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(253, 126, 20, 0.7)',
+                    'rgba(220, 53, 69, 0.7)'
+                ],
+                borderWidth: 1
+            }]
+        };
+
+        const confidenceChart = new Chart(
+            document.getElementById('confidenceChart'),
+            {
+                type: 'doughnut',
+                data: confidenceData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        }
+                    }
+                }
+            }
+        );
+    </script>
+</body>
+</html>

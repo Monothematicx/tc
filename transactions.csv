@@ -1,0 +1,4 @@
+Date,Counter Party,Reference,Type,Amount (GBP),Balance (GBP),Spending Category,Notes,__category,__confidence,__matched_term,__category_confidences,__amount
+01/05/2025,Vision Redbridge Culture&leisure,VRCL12015345XX01,DIRECT DEBIT,-127,78.72,FITNESS,,Gym,100,Vision Redbridge Culture&leisure,"{'Subsistence': 10, 'Gym': 100, 'GROCERIES': 6}",-127.0
+01/05/2025,Tesco,food,FASTER PAYMENT,350,428.72,INCOME,,Subsistence,100,tesco,"{'Subsistence': 100, 'Gym': 6, 'GROCERIES': 12}",350.0
+07/05/2025,Ocado,OCADO                 ,ONLINE PAYMENT,-41.79,386.93,GROCERIES,,GROCERIES,100,Ocado,"{'Subsistence': 24, 'Gym': 6, 'GROCERIES': 100}",-41.79

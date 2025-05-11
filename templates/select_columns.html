@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Columns</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Configure Column Mapping</h1>
+
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Column Mapping Configuration</h5>
+            </div>
+            <div class="card-body">
+                <p>Please specify which columns in your CSV file contain the transaction description and amount information.</p>
+
+                <form method="POST" action="/select_columns">
+                    <!-- Description Column Selection -->
+                    <div class="mb-4">
+                        <h5>Description Column</h5>
+                        <p class="text-muted">Select the column that contains the transaction description or counter party name.</p>
+                        <select name="description_column" class="form-select" required>
+                            <option value="">-- Select Column --</option>
+                            {% for header in headers %}
+                            <option value="{{ header }}">{{ header }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Amount Column Selection -->
+                    <div class="mb-4">
+                        <h5>Amount Information</h5>
+                        <p class="text-muted">How are transaction amounts stored in your CSV?</p>
+
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="amount_type" id="single_amount" value="single" checked>
+                            <label class="form-check-label" for="single_amount">
+                                Single Amount Column (positive/negative values)
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="amount_type" id="split_amount" value="split">
+                            <label class="form-check-label" for="split_amount">
+                                Separate Debit and Credit Columns
+                            </label>
+                        </div>
+
+                        <!-- Single Amount Column Selection (shown by default) -->
+                        <div id="single_amount_section">
+                            <label class="form-label">Select Amount Column:</label>
+                            <select name="amount_column" class="form-select mb-3">
+                                <option value="">-- Select Column --</option>
+                                {% for header in headers %}
+                                <option value="{{ header }}">{{ header }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Split Amount Column Selection (hidden by default) -->
+                        <div id="split_amount_section" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Debit Column (Money Out):</label>
+                                    <select name="debit_column" class="form-select mb-3">
+                                        <option value="">-- Select Column --</option>
+                                        {% for header in headers %}
+                                        <option value="{{ header }}">{{ header }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Credit Column (Money In):</label>
+                                    <select name="credit_column" class="form-select mb-3">
+                                        <option value="">-- Select Column --</option>
+                                        {% for header in headers %}
+                                        <option value="{{ header }}">{{ header }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Continue to Process Transactions</button>
+                        <a href="/" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Toggle visibility of amount sections based on radio selection
+        document.addEventListener('DOMContentLoaded', function() {
+            const singleAmountRadio = document.getElementById('single_amount');
+            const splitAmountRadio = document.getElementById('split_amount');
+            const singleAmountSection = document.getElementById('single_amount_section');
+            const splitAmountSection = document.getElementById('split_amount_section');
+
+            // Initial state setup
+            updateVisibility();
+
+            // Add event listeners
+            singleAmountRadio.addEventListener('change', updateVisibility);
+            splitAmountRadio.addEventListener('change', updateVisibility);
+
+            function updateVisibility() {
+                if (singleAmountRadio.checked) {
+                    singleAmountSection.style.display = 'block';
+                    splitAmountSection.style.display = 'none';
+                } else {
+                    singleAmountSection.style.display = 'none';
+                    splitAmountSection.style.display = 'block';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
